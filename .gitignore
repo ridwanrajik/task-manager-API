@@ -102,3 +102,7 @@ dist
 
 # TernJS port file
 .tern-port
+
+# Additional files
+mongo-data/
+node-course-images
