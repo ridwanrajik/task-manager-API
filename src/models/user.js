@@ -86,13 +86,23 @@ userSchema.statics.findByCredentials = async (email, password) => {
     const user = await User.findOne({ email })
 
     if (!user) {
-        throw new Error('Unable to login')
+        // throw new Error('Email does not exist')  
+        // the argument passed into the Error() function above will not be caught in the catch block. so we consider the below solution.
+        throw {
+            Error:'Email does not exist',
+            error: new Error()  //this is just to allow for stack trace
+        }
     }
 
     const isMatch = await bcrypt.compare(password, user.password)
 
     if (!isMatch) {
-        throw new Error('Unable to login')
+        // throw new Error('Incorrect password')  
+        // the argument passed into the Error() function above will not be caught in the catch block. so we consider the below solution.
+        throw {
+            Error:'Incorrect password',
+            error: new Error()  //this is just to allow for stack trace
+        }
     }
 
     return user

@@ -15,6 +15,9 @@ router.post('/users', async (req, res) => {
         const token = await user.generateAuthToken()
         res.status(201).send({ user, token })
     } catch (e) {
+        if(e.code == 11000){
+            return res.status(400).send({error: 'User already exist'})
+        }
         res.status(400).send(e)
     }
 })
@@ -25,7 +28,7 @@ router.post('/users/login', async (req, res) => {
         const token = await user.generateAuthToken()
         res.send({ user, token })
     } catch (e) {
-        res.status(400).send()
+        res.status(400).send(e)
     }
 })
 
@@ -70,6 +73,9 @@ router.patch('/users/me', auth, async (req, res) => {
         await req.user.save()
         res.send(req.user)
     } catch (e) {
+        if(e.code == 11000){
+            return res.status(400).send({error: 'User with the email address already exist'})
+        }
         res.status(400).send(e)
     }
 })
@@ -131,13 +137,28 @@ router.get('/users/:id/avatar', async (req, res) => {
     try {
         const user = await User.findById(req.params.id)
 
-        if (!user || !user.avatar) {
-            throw new Error()
+        if (!user) {
+            throw {
+                Error:'User does not exist',
+                error: new Error()  //this is just to allow for stack trace
+            }
+        }
+        if (!user.avatar) {
+            throw {
+                Error:'User does not have avatar',
+                error: new Error()  //this is just to allow for stack trace
+            }
         }
 
         res.set('Content-Type', 'image/png')
         res.send(user.avatar)
     } catch (e) {
+        if(e.name == 'CastError'){
+            return res.status(400).send({
+                error: 'Invalid user id',
+                message: e.message
+            })
+        }
         res.status(404).send()
     }
 })

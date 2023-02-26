@@ -13,6 +13,9 @@ router.post('/tasks', auth, async (req, res) => {
         await task.save()
         res.status(201).send(task)
     } catch (e) {
+        if(e.code == 11000){
+            return res.status(400).send({error: 'task already exist'})
+        }
         res.status(400).send(e)
     }
 })
@@ -30,7 +33,7 @@ router.get('/tasks', auth, async (req, res) => {
 
     if (req.query.sortBy) {
         const parts = req.query.sortBy.split(':')
-        sort[parts[0]] = parts[1] === 'desc' ? -1 : 1
+        sort[parts[0]] = parts[1].trim() === 'desc' ? -1 : 1
     }
 
     try {
@@ -56,12 +59,24 @@ router.get('/tasks/:id', auth, async (req, res) => {
         const task = await Task.findOne({ _id, owner: req.user._id })
 
         if (!task) {
-            return res.status(404).send()
+            throw {
+                Error:'Task does not exist',
+                error: new Error()  //this is just to allow for stack trace
+            }
         }
 
         res.send(task)
     } catch (e) {
-        res.status(500).send()
+        if(e.name == 'CastError'){
+            return res.status(400).send({
+                error: 'Invalid task id',
+                message: e.message
+            })
+        }
+        if(e.Error){
+            return res.status(400).send(e)
+        }
+        res.status(500).send(e)
     }
 })
 
@@ -78,13 +93,25 @@ router.patch('/tasks/:id', auth, async (req, res) => {
         const task = await Task.findOne({ _id: req.params.id, owner: req.user._id})
 
         if (!task) {
-            return res.status(404).send()
+            throw {
+                Error:'Task does not exist',
+                error: new Error()  //this is just to allow for stack trace
+            }
         }
 
         updates.forEach((update) => task[update] = req.body[update])
         await task.save()
         res.send(task)
     } catch (e) {
+        if(e.code == 11000){
+            return res.status(400).send({error: 'task already exist'})
+        }
+        if(e.name == 'CastError'){
+            return res.status(400).send({
+                error: 'Invalid task id',
+                message: e.message
+            })
+        }
         res.status(400).send(e)
     }
 })
@@ -94,12 +121,24 @@ router.delete('/tasks/:id', auth, async (req, res) => {
         const task = await Task.findOneAndDelete({ _id: req.params.id, owner: req.user._id })
 
         if (!task) {
-            res.status(404).send()
+            throw {
+                Error:'Task does not exist',
+                error: new Error()  //this is just to allow for stack trace
+            }
         }
 
         res.send(task)
     } catch (e) {
-        res.status(500).send()
+        if(e.name == 'CastError'){
+            return res.status(400).send({
+                error: 'Invalid task id',
+                message: e.message
+            })
+        }
+        if(e.Error){
+            return res.status(400).send(e)
+        }
+        res.status(500).send(e)
     }
 })
 
